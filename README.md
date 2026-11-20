@@ -6,6 +6,8 @@ A native Xbox save data library and example main.c file that can be wired into a
 A gamertag reading library and example main.c file that can be wired into any existing project's player/profile mechanic.
 # [In-Game Reset](https://github.com/cyberiainteractive/nxdk-examples/tree/main/InGameReset)
 In-game reset library and example main.c file for SDL2 and SDL3 that can be wired into any existing project's main loop.
+# [Screenshot](https://github.com/cyberiainteractive/nxdk-examples/tree/main/screenshot)
+SDL2/SDL3 screenshot library and example main.c file for that can be wired into any existing project's main loop.
 
 # Additional Resources
 ## Graphics Libraries
