@@ -1,4 +1,4 @@
-#include "igr_sdl3.h"
+#include "IGR_SDL3.h"
 
 #include <hal/debug.h>
 #include <windows.h>
