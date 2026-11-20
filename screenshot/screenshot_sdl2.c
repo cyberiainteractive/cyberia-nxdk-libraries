@@ -6,6 +6,45 @@
 #include <stdio.h>
 
 static unsigned int g_shotIndex = 1;
+static int g_comboHeldLastFrame = 0;
+
+static int IsButtonPressed(SDL_GameController *pad, SDL_GameControllerButton btn)
+{
+	if (!pad || btn == SDL_CONTROLLER_BUTTON_INVALID)
+		return 1;
+
+	return SDL_GameControllerGetButton(pad, btn) != 0;
+}
+
+static int IsComboActiveOnAnyController(void)
+{
+	int numJoysticks = SDL_NumJoysticks();
+
+	for (int i = 0; i < numJoysticks; i++)
+	{
+		SDL_GameController *pad;
+		int pressed;
+
+		if (!SDL_IsGameController(i))
+			continue;
+
+		pad = SDL_GameControllerOpen(i);
+		if (!pad)
+			continue;
+
+		pressed =
+			IsButtonPressed(pad, XBOX_SCREENSHOT_BTN_1) &&
+			IsButtonPressed(pad, XBOX_SCREENSHOT_BTN_2) &&
+			IsButtonPressed(pad, XBOX_SCREENSHOT_BTN_3);
+
+		SDL_GameControllerClose(pad);
+
+		if (pressed)
+			return 1;
+	}
+
+	return 0;
+}
 
 static int EnsureStorageReady(void)
 {
@@ -97,4 +136,20 @@ int XboxScreenshot_SDL2_CaptureNext(
 
 	g_shotIndex++;
 	return 1;
+}
+
+int XboxScreenshot_SDL2_UpdateAndCapture(
+	SDL_Renderer *renderer,
+	char *outPathBuf,
+	unsigned int outPathBufSize)
+{
+	int comboNow = IsComboActiveOnAnyController();
+	int justPressed = (comboNow && !g_comboHeldLastFrame);
+
+	g_comboHeldLastFrame = comboNow;
+
+	if (!justPressed)
+		return 0;
+
+	return XboxScreenshot_SDL2_CaptureNext(renderer, outPathBuf, outPathBufSize);
 }
