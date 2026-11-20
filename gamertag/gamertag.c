@@ -33,7 +33,7 @@ static int IsPrintableGamertag(const unsigned char *raw, unsigned int maxLen)
 int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 {
 	OBJECT_ATTRIBUTES objAttr;
-	UNICODE_STRING devName;
+	ANSI_STRING devName;
 	IO_STATUS_BLOCK ioStatus;
 	LARGE_INTEGER offset;
 	HANDLE hDisk = NULL;
@@ -46,7 +46,7 @@ int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 
 	outGamertag[0] = '\0';
 
-	RtlInitAnsiString((PANSI_STRING)&devName, "\\Device\\Harddisk0\\Partition0");
+	RtlInitAnsiString(&devName, "\\Device\\Harddisk0\\Partition0");
 	InitializeObjectAttributes(&objAttr, &devName, OBJ_CASE_INSENSITIVE, NULL, NULL);
 
 	status = NtOpenFile(
@@ -74,8 +74,7 @@ int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 		&ioStatus,
 		sectorBuf,
 		sizeof(sectorBuf),
-		&offset,
-		NULL);
+		&offset);
 
 	NtClose(hDisk);
 
