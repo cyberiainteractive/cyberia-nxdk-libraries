@@ -5,29 +5,51 @@
 #include <xboxkrnl/xboxkrnl.h>
 #include <string.h>
 
-#define FATX_MAGIC            0x58544146U
-#define FATX_ACCOUNTS_OFFSET  0x50U
-#define FATX_ACCOUNT_SIZE     0x6CU
-#define FATX_ACCOUNT_COUNT    8U
-#define ACCOUNT_XUID_OFFSET   0x00U
-#define ACCOUNT_GT_OFFSET     0x0CU
-#define ACCOUNT_GT_LEN        16U
+#ifndef XBOX_ACCOUNT_FIRST_SECTOR
+#define XBOX_ACCOUNT_FIRST_SECTOR 12
+#endif
 
-static int IsPrintableGamertag(const unsigned char *raw, unsigned int maxLen)
+#ifndef XBOX_ACCOUNT_SECTORS
+#define XBOX_ACCOUNT_SECTORS 8
+#endif
+
+#ifndef XBOX_ACCOUNT_GAMERTAG_OFFSET
+#define XBOX_ACCOUNT_GAMERTAG_OFFSET 0x18
+#endif
+
+#ifndef XBOX_ACCOUNT_GAMERTAG_BYTES
+#define XBOX_ACCOUNT_GAMERTAG_BYTES 16
+#endif
+
+#define XBOX_SECTOR_SIZE 512U
+
+static unsigned int ExtractPrintableTag(
+	const unsigned char *raw,
+	unsigned int maxBytes,
+	char *outBuf,
+	unsigned int outSize)
 {
 	unsigned int i;
-	int hasChar = 0;
+	unsigned int o = 0;
+	unsigned int limit = (maxBytes > 0) ? (maxBytes - 1U) : 0U;
 
-	for (i = 0; i < maxLen; i++)
+	if (!raw || !outBuf || outSize <= 1U)
+		return 0;
+
+	for (i = 0; i < limit && raw[i] != 0x00; i++)
 	{
-		if (raw[i] == 0x00)
-			return hasChar;
-		if (raw[i] < 0x20 || raw[i] > 0x7E)
+		if (raw[i] < 0x20 || raw[i] >= 0x7F)
 			return 0;
-		hasChar = 1;
+
+		if (raw[i] == '"' || raw[i] == '\\' || raw[i] == ';')
+			continue;
+
+		if (o + 1U < outSize)
+			outBuf[o++] = (char)raw[i];
 	}
 
-	return 0;
+	outBuf[o] = '\0';
+	return o;
 }
 
 int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
@@ -38,8 +60,8 @@ int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 	LARGE_INTEGER offset;
 	HANDLE hDisk = NULL;
 	NTSTATUS status;
-	unsigned char sectorBuf[1024];
-	unsigned int slot;
+	static unsigned char sectorBuf[XBOX_ACCOUNT_SECTORS * XBOX_SECTOR_SIZE] __attribute__((aligned(512)));
+	unsigned int sector;
 
 	if (!outGamertag || outSize == 0)
 		return 0;
@@ -51,11 +73,11 @@ int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 
 	status = NtOpenFile(
 		&hDisk,
-		FILE_READ_DATA | SYNCHRONIZE,
+		FILE_GENERIC_READ,
 		&objAttr,
 		&ioStatus,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		FILE_SYNCHRONOUS_IO_NONALERT);
+		FILE_NO_INTERMEDIATE_BUFFERING | FILE_SYNCHRONOUS_IO_NONALERT);
 
 	if (!NT_SUCCESS(status) || !hDisk)
 	{
@@ -64,7 +86,7 @@ int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 	}
 
 	memset(sectorBuf, 0, sizeof(sectorBuf));
-	offset.QuadPart = 0;
+	offset.QuadPart = (LONGLONG)XBOX_ACCOUNT_FIRST_SECTOR * (LONGLONG)XBOX_SECTOR_SIZE;
 
 	status = NtReadFile(
 		hDisk,
@@ -78,38 +100,24 @@ int XboxLiveProfile_GetFirstGamertag(char *outGamertag, unsigned int outSize)
 
 	NtClose(hDisk);
 
-	if (!NT_SUCCESS(status) || ioStatus.Information < (FATX_ACCOUNTS_OFFSET + FATX_ACCOUNT_COUNT * FATX_ACCOUNT_SIZE))
+	if (!NT_SUCCESS(status))
 	{
 		debugPrint("XboxLiveProfile: NtReadFile failed (0x%08lX)\n", (unsigned long)status);
 		return 0;
 	}
 
-	if (*(const unsigned int *)(sectorBuf + 0x00) != FATX_MAGIC)
+	for (sector = 0; sector < XBOX_ACCOUNT_SECTORS; sector++)
 	{
-		debugPrint("XboxLiveProfile: FATX magic not found\n");
-		return 0;
-	}
+		unsigned int entryOffset = (sector * XBOX_SECTOR_SIZE) + XBOX_ACCOUNT_GAMERTAG_OFFSET;
+		const unsigned char *tag = sectorBuf + entryOffset;
 
-	for (slot = 0; slot < FATX_ACCOUNT_COUNT; slot++)
-	{
-		const unsigned char *acct = sectorBuf + FATX_ACCOUNTS_OFFSET + (slot * FATX_ACCOUNT_SIZE);
-		const unsigned char *gtRaw = acct + ACCOUNT_GT_OFFSET;
-		unsigned long long xuid = *(const unsigned long long *)(acct + ACCOUNT_XUID_OFFSET);
+		if (entryOffset >= ioStatus.Information)
+			break;
 
-		if (xuid == 0ULL)
-			continue;
-
-		if (IsPrintableGamertag(gtRaw, ACCOUNT_GT_LEN))
-		{
-			unsigned int len = (unsigned int)strlen((const char *)gtRaw);
-			if (len >= outSize)
-				len = outSize - 1;
-
-			memcpy(outGamertag, gtRaw, len);
-			outGamertag[len] = '\0';
+		if (ExtractPrintableTag(tag, XBOX_ACCOUNT_GAMERTAG_BYTES, outGamertag, outSize) > 0)
 			return 1;
-		}
 	}
 
+	outGamertag[0] = '\0';
 	return 0;
 }
