@@ -104,9 +104,6 @@ int XboxSave_Write(
 		}
 	}
 
-	snprintf(udataDir, sizeof(udataDir), "E:\\UDATA");
-	CreateDirectoryA(udataDir, NULL);
-
 	snprintf(titleDir, sizeof(titleDir), "%s\\%s", udataDir, tid);
 	CreateDirectoryA(titleDir, NULL);
 
