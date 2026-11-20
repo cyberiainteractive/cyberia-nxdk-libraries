@@ -1,7 +1,7 @@
 NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL3_DIR ?= $(CURDIR)/../nxdk/nxdk-sdl3
 
-XBE_TITLE = NXDK In-Game Reset (SDL)
+XBE_TITLE = NXDK In-Game Reset (SDL3)
 GEN_XISO = $(XBE_TITLE).iso
 SRCS = main.c
 
