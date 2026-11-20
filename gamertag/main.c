@@ -8,7 +8,7 @@
 
 void main(void)
 {
-	char gamertag[XBOX_LIVE_GAMERTAG_MAX_LEN + 1];
+	char gamertag[GAMERTAG_MAX_LEN + 1];
 	int found;
 	int running = 1;
 	SDL_Window *win = NULL;
