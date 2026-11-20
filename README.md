@@ -1,11 +1,11 @@
 # nxdk-examples
 Example NXDK template functions for porting efforts, namely to assist in making ports feel closer to actual native Xbox games. Please use them to make your lives a bit easier!
 # [Save Data](https://github.com/cyberiainteractive/nxdk-examples/tree/main/savedata)
-A native Xbox save data function and example main.c file that can be wired into any existing project's saving mechanics.
+A native Xbox save data library and example main.c file that can be wired into any existing project's saving mechanics.
 # [Gamertag](https://github.com/cyberiainteractive/nxdk-examples/tree/main/gamertag)
-A gamertag reading function and example main.c file that can be wired into any existing project's player/profile mechanic.
+A gamertag reading library and example main.c file that can be wired into any existing project's player/profile mechanic.
 # [In-Game Reset](https://github.com/cyberiainteractive/nxdk-examples/tree/main/InGameReset)
-In-game reset function and example main.c file for SDL2 and SDL3 that can be wired into any existing project's main loop.
+In-game reset library and example main.c file for SDL2 and SDL3 that can be wired into any existing project's main loop.
 
 # Additional Resources
 ## Graphics Libraries
